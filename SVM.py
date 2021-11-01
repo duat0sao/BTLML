@@ -9,21 +9,22 @@ import tkinter
 from sklearn.model_selection import train_test_split
 from tkinter import filedialog
 from sklearn import svm
-import cv2
 from sklearn.metrics import accuracy_score
+from tkinter import messagebox
+from PIL import ImageTk, Image
 
 
 
 
-#  nhập dữ liệu
 Categories=['Mắt lờ đờ','Mắt mở','Mắt nhắm']
 flat_data_arr=[]                                            #input array
 target_arr=[]                                               #output array
 datadir='C:/xampp/htdocs/hoc/ML/BTL/dataset'
-# nhập từng dữ liệu
+
+# load dữ liệu
 for i in Categories:
     
-    print(f'loading... category : {i}')
+    print(f'loading...  {i}...')
     path=os.path.join(datadir,i)
     for img in os.listdir(path):
         
@@ -32,6 +33,8 @@ for i in Categories:
         flat_data_arr.append(img_resized.flatten())
         target_arr.append(Categories.index(i))
     print(f'Done!!!')
+
+
 flat_data=np.array(flat_data_arr)
 target=np.array(target_arr)
 
@@ -42,13 +45,23 @@ x=df.iloc[:,:-1]                                            #input data
 y=df.iloc[:,-1]                                             #output data
 
 
-
-# Tách dữ liệu phân tích // phân tích dữ liệu
-x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.10,random_state=77,stratify=y)
-
+# Tách dữ liệu phân tích 
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.20,random_state=77,stratify=y)
 
 
-# SVM
+"""
+print(x_train\n)
+
+print(y_train\n)
+
+print(x_test\n)
+
+print(y_test\n)
+
+"""
+
+
+# ## train SVM 
 print('SVM')
 model=svm.SVC(probability=True)
 print('Model is training..............')
@@ -65,67 +78,42 @@ print(f"Độ chính xác: {accuracy_score(y_pred,y_test)*100}% ")
 
 
 
-"""
-print('\n#####-------- Prediction on single image ------#####')
-new_img = 'C:/xampp/htdocs/hoc/ML/BTL/Eyes/Closed/10.jpg'
-img=imread(new_img)
-plt.imshow(img)
-#plt.show()
-
-img_resize=resize(img,(150,150,3))
-l=[img_resize.flatten()]
-probability=model.predict_proba(l)
-print("The predicted image is : "+Categories[model.predict(l)[0]])
-"""
-
-
-
 #Giao dien
 windown=Tk()
 windown.title("SVM")
-windown.geometry("300x250")
-
-#nhap anh 
-label=Label(windown,text="Nhap anh: ",fg="green",font=("arial",13))
-label.grid(column=0,row=1)
-
-txt= filedialog.askopenfilename()
+windown.geometry("550x300")
 
 
+def openfn():
+    filename = filedialog.askopenfilename()
+    return filename
+def open_img():
+    anh = openfn()
+    img = Image.open(anh)
 
-#label ket qua
-label2=Label(windown,text="Kết quả: ",fg="green",font=("arial",13))
-label2.grid(column=1,row=3)
-labelkq=Label(windown,text="",fg="green",font=("arial",18))
-labelkq.grid(column=2,row=3)
+    img = img.resize((150, 50), Image.ANTIALIAS)
+    img = ImageTk.PhotoImage(img)
+    panel = Label(windown, image=img)
+    panel.image = img
+    panel.pack()
+    img=imread(anh)
 
-
-
-
-#function lam viec khi bam buttonz
-def handleButton():
-    if(txt!=''):
-
-        img=imread(txt)
-        plt.imshow(img)
+    plt.imshow(img)
         
 
-        img_resize=resize(img,(150,150,3))
-        l=[img_resize.flatten()]
-        probability=model.predict_proba(l)
-        kq = Categories[model.predict(l)[0]]
+    img_resize=resize(img,(150,150,3))
+    l=[img_resize.flatten()]
+    probability=model.predict_proba(l)
+    kq = Categories[model.predict(l)[0]]
+    print(kq)
+    messagebox.showinfo('Kết quả dự đoán', kq)
+    #labelkq.configure(text=str(kq))  #trả kết quả về dòng labelkq
 
-        labelkq.configure(text=str(kq))  #trả kết quả về dòng labelkq
+def clear(): # đóng luôn chứ ko phải clear
+    windown.destroy()
 
-
-    return
-
-#button
-button=Button(windown,text="Dự đoán",command=handleButton)   
-button.grid(column=1,row=5)   
-
- 
-    
+btn = Button(windown, text='open image', command=open_img).pack(side = TOP, fill = BOTH)
+clearScr = Button(windown, text='Đóng', command=clear).pack(side = TOP,  fill = BOTH)
 
 windown.mainloop()
 
