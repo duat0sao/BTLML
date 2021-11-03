@@ -60,8 +60,8 @@ target=np.array(target_arr)
 
 df=pd.DataFrame(flat_data)                                  #dataframe
 df['Target']=target
-x=df.iloc[:,:-1]                                            #input data 
-y=df.iloc[:,-1]                                             #output data
+x=df.iloc[:,:-1]                                            #input data  đến cuối cùng
+y=df.iloc[:,-1]                                             #output data là cột cuối cùng
 
 
 # Tách dữ liệu 
