@@ -1,146 +1,164 @@
-import pandas as pd
-import os
-from skimage.transform import resize
-from skimage.io import imread
-import numpy as np
+#.............Ho Ten : Tran Nhat Duat ..................
+#.............MSV    : 1851061357 ......................
+
+
+from __future__ import print_function
+from tkinter import messagebox
+import numpy as np 
 import matplotlib.pyplot as plt
+from scipy.spatial.distance import cdist
 from tkinter import *
 import tkinter
-from sklearn.model_selection import train_test_split
+import pandas as pd
+from cvxopt import matrix, solvers
 from tkinter import filedialog
-from sklearn import svm
-from sklearn.metrics import accuracy_score
-from tkinter import messagebox
-from PIL import ImageTk, Image
+from tkinter import Menu
+from os import path
 
 
+#nhap data
+N = 10
+X0 = np.array([[8.31948309,8.88537088],
+[9.72107039,9.44652357],
+[9.30445446,8.97514052],
+[9.37282942,9.04057585],
+[8.99157377,9.10341644],
+[9.45728806,9.32995121],
+[8.29949031,8.22041161],
+[10.1909308,9.84534388],
+[8.95613177,8.86582452],
+[9.59862883,8.89063922]
+])
+X1 = np.array([[10.98972272,9.55993622],
+[10.14993386,8.25455673],
+[10.85817078,9.141431],
+[10.82437996,8.69765848],
+[11.20625753,9.35678552],
+[11.26741918,8.63333018],
+[10.91275487,8.62259784],
+[11.08286367,9.5424809],
+[10.34537123,8.3582377],
+[10.08186664,8.70978459]
+])
+
+X = np.concatenate((X0.T, X1.T), axis = 1) # all data 
+y = np.concatenate((np.ones((1, N)), -1*np.ones((1, N))), axis = 1) # labels
 
 
-Categories=['Mắt lờ đờ','Mắt mở','Mắt nhắm']                # 1 string
-flat_data_arr=[]                                            #khởi tạo input array
-target_arr=[]                                               #khởi tạo output array
-datadir='C:/xampp/htdocs/hoc/ML/BTL/dataset'
+#Tìm lambda
+V = np.concatenate((X0.T, -X1.T), axis = 1)
+K = matrix(V.T.dot(V))  # see definition of V, K near eq (8)
+p = matrix(-np.ones((2*N, 1)))  # all-one vector 
 
-# load dữ liệu
-for i in Categories:
-    
-    print(f'loading...  {i}...')
-    path=os.path.join(datadir,i)
-    for img in os.listdir(path):
-        
-        img_array=imread(os.path.join(path,img))
-        img_resized=resize(img_array,(150,150,3))          #thay đổi kích thước ảnh
-        flat_data_arr.append(img_resized.flatten())
-        """
+# build A, b, G, h 
+G = matrix(-np.eye(2*N))  # for all lambda_n >= 0
+h = matrix(np.zeros((2*N, 1)))
+A = matrix(y)      # the equality constrain is actually y^T lambda = 0
+b = matrix(np.zeros((1, 1))) 
+solvers.options['show_progress'] = False
+sol = solvers.qp(K, p, G, h, A, b)
 
-Lớp làm phẳng Keras rất quan trọng khi bạn phải xử lý các đầu vào đa chiều như tập dữ liệu hình ảnh. 
-Keras.layers.flattenhàm làm phẳng các bộ căng đầu vào đa chiều thành một chiều duy nhất, vì vậy bạn có thể lập mô hình lớp đầu vào và xây dựng mô hình mạng nơ-ron của mình, 
-sau đó chuyển các dữ liệu đó vào từng nơ-ron của mô hình một cách hiệu quả.
-Bạn có thể hiểu điều này dễ dàng với tập dữ liệu MNIST thời trang. 
-Hình ảnh trong tập dữ liệu này có kích thước 28 * 28 pixel. 
-Do đó, nếu bạn in hình ảnh đầu tiên trong python, bạn có thể thấy một mảng đa chiều, 
-mảng mà chúng tôi thực sự không thể đưa vào lớp đầu vào của Mạng thần kinh sâu của chúng tôi.
-Để giải quyết vấn đề này, chúng ta có thể làm phẳng dữ liệu hình ảnh khi đưa nó vào mạng nơ-ron. 
-Chúng ta có thể làm điều này bằng cách biến tensor đa chiều này thành mảng một chiều. 
-Trong mảng phẳng này bây giờ chúng ta có 784 phần tử (28 * 28). Sau đó, chúng ta có thể tạo ra lớp đầu vào với 784 nơ-ron để xử lý từng phần tử của dữ liệu đến.
-Tất cả chúng ta có thể làm điều này bằng cách sử dụng một dòng mã, loại
+l = np.array(sol['x'])
+#print('lambda = ')
+#print(l.T)
 
-append là thêm dữ liệu vào phần sau VD x=123 x.append45 => x= 12345
-"""
+epsilon = 1e-6   # just a small number, greater than 1e-9
+S = np.where(l > epsilon)[0]
+VS= V[:, S]
+XS = X[:, S]
+yS = y[:, S]
+lS = l[S]
 
-        target_arr.append(Categories.index(i))           #gán nhãn cho tập dữ liệu vừa tạo 0 1 2
-    print(f'Done!!!')
+# Tính toán hệ số w và b :
+w = VS.dot(lS)
+b = np.mean(yS.T - w.T.dot(XS))
 
-
-flat_data=np.array(flat_data_arr)
-target=np.array(target_arr)
-
-
-
-
-df=pd.DataFrame(flat_data)                                  #dataframe
-df['Target']=target
-x=df.iloc[:,:-1]                                            #input data  đến cuối cùng
-y=df.iloc[:,-1]                                             #output data là cột cuối cùng
-
-
-# Tách dữ liệu 
-x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.20,random_state=130,stratify=y)
-
-
-"""
-print(x_train\n)
-
-print(y_train\n)
-
-print(x_test\n)
-
-print(y_test\n)
-
-"""
-
-
-# ## train SVM 
-print('SVM')
-model=svm.SVC(probability=True)
-print('Model is training..............')
-model.fit(x_train,y_train)
-print('Done!!!\n')
-
-
-def cxtt():                                             #hàm tính độ chính xác
-    
-    y_pred=model.predict(x_test)
-    print("Kết quả dự đoán :")
-    print(y_pred)
-    print("Kết quả thực tế:")
-    print(np.array(y_test))
-    cxpt = accuracy_score(y_pred,y_test)*100
-    print(f"Độ chính xác: {accuracy_score(y_pred,y_test)*100}% ")
-    messagebox.showinfo("Độ chính xác: ", cxpt)
-
+print('w = ', w.T)
+print('b = ', b)
 
 
 #Giao dien
 windown=Tk()
 windown.title("SVM")
-windown.geometry("550x300")
+windown.geometry("300x200")
+
+#nhap x
+label=Label(windown,text="X=",fg="green",font=("arial",13))
+label.grid(column=0,row=1)
+txt=Entry(windown)
+txt.grid(column=1,row=1)
 
 
-def openfn():
-    filename = filedialog.askopenfilename()
-    return filename
-def open_img():
-    anh = openfn()
-    img = Image.open(anh)
+#nhap y
+label1=Label(windown,text="Y=",fg="green",font=("arial",13))
+label1.grid(column=0,row=2)
+txt1=Entry(windown)
+txt1.grid(column=1,row=2)
 
-    img = img.resize((150, 50), Image.ANTIALIAS)
-    img = ImageTk.PhotoImage(img)
-    panel = Label(windown, image=img)
-    panel.image = img
-    panel.pack()
+#label ket qua
+label2=Label(windown,text="Kết quả: ",fg="green",font=("arial",13))
+label2.grid(column=1,row=3)
+labelkq=Label(windown,text="",fg="green",font=("arial",18))
+labelkq.grid(column=2,row=3)
+
+menu = Menu(windown)
+ 
+new_item = Menu(menu)
+ 
+new_item.add_command(label='New')
+ 
+new_item.add_separator()
+ 
+new_item.add_command(label='Edit')
+ 
+menu.add_cascade(label='File', menu=new_item)
+ 
+windown.config(menu=menu)
+
+#label do chinh xac
+label2=Label(windown,text="Độ chính xác: ",fg="green",font=("arial",13))
+label2.grid(column=1,row=4)
+labelcx=Label(windown,text="",fg="green",font=("arial",13))
+labelcx.grid(column=2,row=4)
 
 
-    img=imread(anh)
-    plt.imshow(img)
-    img_resize=resize(img,(150,150,3))
-    l=[img_resize.flatten()]
 
-    probability=model.predict_proba(l)
-    kq = Categories[model.predict(l)[0]]
-    print(kq)
-    messagebox.showinfo('Kết quả dự đoán', kq)
-    
-def clear():                                            #đóng luôn chứ ko phải clear
-    windown.quit()             #quit luôn
-    #windown.destroy()         #cũng là quit nhưng mà nhẹ hơn
+#file = filedialog.askopenfilename(initialdir= path.dirname(__file__))
 
 
 
 
-btn = Button(windown, text='open image', command=open_img).pack(side = TOP, fill = BOTH)
-cx = Button(windown, text='Độ chính xác thuật toán', command=cxtt).pack(side = TOP, fill = BOTH)
-clearScr = Button(windown, text='Đóng', command=clear).pack(side = TOP,  fill = BOTH)
+#function lam viec khi bam buttonz
+def handleButton():
+    if(txt.get()!='' and txt1.get()!=''):
+        x1_test=float(txt.get())                       #lay du lieu từ textbox1(entry)
+        x2_test=float(txt1.get())                      #lay du lieu từ textbox1(entry)
+        X_test = [x1_test, x2_test] 
+        
+        kq = np.sign(np.dot(w.T,np.array(X_test))+b)   #du doan nhan voi Xtest
+        
+        """
+        dot sẽ tính vecto w.T với X_test ta tạo dc ở dòng 105
+        được giá trị WTXtest 
+        ta cộng WTXtest tính được kia cho b đã tìm được ở dòng 71
+        được giá trị class(Xtest)
+        và tiếp theo ta dùng sign để xác định dấu class(Xtest) kia
+        sign sẽ trả về -1 nếu kết quả kia <0 và if ==0 or >0 thì  return sign sẽ là 1
+        """
+
+        y_res = np.sign(np.dot(w.T,np.array(X))+b)
+        cx= 100 - np.mean(np.abs(y_res - y)) * 100    #đánh giá mức độ chính xác mô hình 
+
+        labelkq.configure(text=str(kq))  #trả kết quả về dòng labelkq
+        labelcx.configure(text=str(cx))  #Trả kết quả về dòng labelcx
+    else:
+        messagebox.showwarning('Thiếu dữ liệu')
+    return
+
+#button
+button=Button(windown,text="Du doan",command=handleButton)   
+button.grid(column=1,row=5)   
+
 
 windown.mainloop()
 

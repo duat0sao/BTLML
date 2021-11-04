@@ -1,0 +1,1 @@
+i need to develop a blink detection machine learining project with python and SVm algorithm, it is training sample >=100, tet sample >=20, template attribute >=3(open closed, partially closed) and basic graphics. I need it on sunday, or maybe earlier
