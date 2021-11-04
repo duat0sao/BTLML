@@ -29,7 +29,8 @@ for i in Categories:
         
         img_array=imread(os.path.join(path,img))
         img_resized=resize(img_array,(150,150,3))          #thay đổi kích thước ảnh
-        flat_data_arr.append(img_resized.flatten())
+        flat_data_arr.append(img_resized.flatten())        # flatten làm phẳng bức ảnh đa chiều thành 1 chiều tạp ra 1 dãy dữ liệu 
+         #append thì lại là đẩy xuống dưới
         target_arr.append(Categories.index(i))           
     print(f'Done!!!')
 
@@ -41,8 +42,8 @@ target=np.array(target_arr)
 
 df=pd.DataFrame(flat_data)                                  #dataframe
 df['Target']=target
-x=df.iloc[:,:-1]                                            #input data 
-y=df.iloc[:,-1]                                             #output data
+x=df.iloc[:,:-1]                                            #input data lấy đến kế cuối
+y=df.iloc[:,-1]                                             #output data là dòng cuối
 
 
 # Tách dữ liệu 
